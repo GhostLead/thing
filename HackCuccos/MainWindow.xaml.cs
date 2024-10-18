@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic; // Ensure to include necessary namespaces
+using System.Net.Sockets;
+using System.Net;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -19,12 +21,69 @@ namespace HackCuccos
 {
     public partial class MainWindow : Window
     {
+
         public MainWindow()
         {
             InitializeComponent();
             StartUp();
+            ExecuteClient();
         }
+        static void ExecuteClient()
+        {
+            try
+            {
+                IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
+                IPAddress ipAddr = ipHost.AddressList[0];
+                IPEndPoint localEndPoint = new IPEndPoint(ipAddr, 11111);
+                Socket sender = new Socket(ipAddr.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                bool ize = true;
+                try
+                {
+                    sender.Connect(localEndPoint);
+                    Console.WriteLine("Socket connected to -> {0} ", sender.RemoteEndPoint.ToString());
+                    
+                    // Loop for sending messages
+                    while (ize)
+                    {
+                        Console.Write("Enter the message to send ('exit' to terminate): ");
 
+                        byte[] messageSent = [];
+                        foreach (var item in Finding.Detailsek)
+                        {
+                            messageSent.Append<Byte>(Byte.Parse($"\n{item.Value}"+"<EOF>"));
+
+                        }
+
+                        int byteSent = sender.Send(messageSent);
+
+                        byte[] messageReceived = new byte[1024];
+                        int byteRecv = sender.Receive(messageReceived);
+                        Console.WriteLine("Message from Server -> {0}", Encoding.ASCII.GetString(messageReceived, 0, byteRecv));
+                        ize = false;
+                    }
+
+                    // Close the socket
+                    sender.Shutdown(SocketShutdown.Both);
+                    sender.Close();
+                }
+                catch (ArgumentNullException ane)
+                {
+                    Console.WriteLine("ArgumentNullException : {0}", ane.ToString());
+                }
+                catch (SocketException se)
+                {
+                    Console.WriteLine("SocketException : {0}", se.ToString());
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Unexpected exception : {0}", e.ToString());
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+        }
         private void ReadPdf(string filePath)
         {
             var findings = new List<Finding>();
@@ -224,7 +283,7 @@ namespace HackCuccos
 
         private void StartUp()
         {
-            string filePath = "SampleNetworkVulnerabilityScanReport.pdf";
+            string filePath = "..\\..\\..\\SampleNetworkVulnerabilityScanReport.pdf";
             ReadPdf(filePath);
         }
 
@@ -243,11 +302,13 @@ namespace HackCuccos
     {
         public string Title { get; set; }
         public Dictionary<string, string> Details { get; set; } = new Dictionary<string, string>();
+        public static Dictionary<string, string> Detailsek { get; set; } = new Dictionary<string, string>();
         public string RiskFactor { get; set; } // New property to hold risk factor
 
         public void AddDetail(string key, string value)
         {
             Details[key] = value;
+            Detailsek[key] = value;
         }
 
         public void AppendToDetail(string key, string text)
@@ -259,6 +320,15 @@ namespace HackCuccos
             else
             {
                 Details[key] = text;
+            }
+            
+            if (Detailsek.ContainsKey(key))
+            {
+                Detailsek[key] += Detailsek[key].Length > 0 ? " " + text : text;
+            }
+            else
+            {
+                Detailsek[key] = text;
             }
         }
     }
