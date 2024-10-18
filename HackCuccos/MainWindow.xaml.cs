@@ -85,8 +85,20 @@ namespace HackCuccos
 
         private void DisplayFindings(List<Finding> findings)
         {
+            // Clear existing findings
             FindingsStackPanel.Children.Clear();
 
+            // Create a ScrollViewer to allow scrolling
+            ScrollViewer scrollViewer = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled // Disable horizontal scrolling unless needed
+            };
+
+            // Create a StackPanel inside the ScrollViewer
+            StackPanel contentPanel = new StackPanel();
+
+            // Add the findings to the StackPanel
             foreach (var finding in findings)
             {
                 // Initialize default styles
@@ -124,36 +136,43 @@ namespace HackCuccos
                         Text = finding.Title,
                         TextWrapping = TextWrapping.Wrap,
                         Background = background,
-                        Foreground = Brushes.Black, // Set foreground to black
-                        Padding = new Thickness(5) // Optional: Add padding for better visibility
+                        Foreground = Brushes.Black,
+                        Padding = new Thickness(5)
                     },
                     IsExpanded = false,
                     Margin = new Thickness(0, 0, 0, 10)
                 };
 
-                var contentPanel = new StackPanel();
+                var detailsPanel = new StackPanel();
 
                 foreach (var detail in finding.Details)
                 {
-                    contentPanel.Children.Add(new TextBlock
+                    detailsPanel.Children.Add(new TextBlock
                     {
                         Text = detail.Key,
                         FontWeight = FontWeights.Bold,
-                        Foreground = Brushes.Black, // Set foreground to black for detail headers
+                        Foreground = Brushes.Black,
                         Margin = new Thickness(0, 10, 0, 5)
                     });
-                    contentPanel.Children.Add(new TextBlock
+                    detailsPanel.Children.Add(new TextBlock
                     {
                         Text = detail.Value,
                         TextWrapping = TextWrapping.Wrap,
-                        Foreground = Brushes.Black // Set foreground to black for detail values
+                        Foreground = Brushes.Black
                     });
                 }
 
-                expander.Content = contentPanel;
-                FindingsStackPanel.Children.Add(expander);
+                expander.Content = detailsPanel;
+                contentPanel.Children.Add(expander);
             }
+
+            // Add StackPanel with content to the ScrollViewer
+            //scrollViewer.Content = contentPanel;
+
+            // Finally, add the ScrollViewer to the main layout
+            FindingsStackPanel.Children.Add(contentPanel);
         }
+
 
         private Border CreateHeader(Finding finding)
         {
@@ -212,6 +231,11 @@ namespace HackCuccos
         private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             DragMove();
+        }
+
+        private void ShutDownButton_Click(object sender, RoutedEventArgs e)
+        {
+            Application.Current.Shutdown();
         }
     }
 

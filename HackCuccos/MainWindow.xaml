@@ -6,14 +6,22 @@
         xmlns:local="clr-namespace:HackCuccos"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800" WindowStartupLocation="CenterScreen" WindowStyle="None" AllowsTransparency="True" Background="Transparent">
-    <Border MouseLeftButtonDown="Border_MouseLeftButtonDown" Background="Gray" BorderBrush="Black" BorderThickness="2" Margin="10" CornerRadius="22">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="10" ShadowDepth="0" Direction="0" Color="Lime" Opacity="1"/>
-        </Border.Effect>
-        <StackPanel Margin="40">
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="10">
-                <StackPanel x:Name="FindingsStackPanel" Margin="10"/>
-            </ScrollViewer>
+    <Border CornerRadius="10" BorderThickness="2" BorderBrush="Black" Background="DarkGray" Height="430" Width="780">
+        <StackPanel >
+            <Border Height="30" Background="White" CornerRadius="10,10,0,0">
+                <StackPanel Orientation="Horizontal" Width="760">
+                    <Button x:Name="ShutDownButton" Width="20" Height="20" Content="X" Margin="700,0,0,0" Click="ShutDownButton_Click"/>
+                </StackPanel>
+            </Border>
+            <Border Height="380" MouseLeftButtonDown="Border_MouseLeftButtonDown" Background="Gray" BorderBrush="Black" BorderThickness="2" Margin="10" CornerRadius="22">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="0" Direction="0" Color="Maroon" Opacity="1"/>
+                </Border.Effect>
+                <ScrollViewer VerticalScrollBarVisibility="Visible" Margin="40">
+                    <StackPanel x:Name="FindingsStackPanel" Margin="10"/>
+                </ScrollViewer>
+            </Border>
         </StackPanel>
-        </Border>
+    </Border>
+    
 </Window>
