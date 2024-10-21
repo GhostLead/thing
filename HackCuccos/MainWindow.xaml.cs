@@ -26,63 +26,84 @@ namespace HackCuccos
         {
             InitializeComponent();
             StartUp();
-            ExecuteClient();
+            Loaded += (s, e) => ExecuteClient();
         }
-        static void ExecuteClient()
+        static async void ExecuteClient()
         {
+            await Task.Run(() => { 
             try
             {
-                IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
-                IPAddress ipAddr = ipHost.AddressList[0];
-                IPEndPoint localEndPoint = new IPEndPoint(ipAddr, 11111);
-                Socket sender = new Socket(ipAddr.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                bool ize = true;
-                try
+                    IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
+                    IPAddress ipAddr = ipHost.AddressList[0];
+                    IPEndPoint localEndPoint = new IPEndPoint(ipAddr, 11111);
+                    using (Socket sender = new Socket(ipAddr.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
                 {
-                    sender.Connect(localEndPoint);
-                    Console.WriteLine("Socket connected to -> {0} ", sender.RemoteEndPoint.ToString());
-                    
-                    // Loop for sending messages
-                    while (ize)
+                    try
                     {
-                        Console.Write("Enter the message to send ('exit' to terminate): ");
+                        sender.Connect(localEndPoint);
+                        Console.WriteLine("Socket connected to -> {0} ", sender.RemoteEndPoint.ToString());
 
-                        byte[] messageSent = [];
-                        foreach (var item in Finding.Detailsek)
+                        // Loop for sending messages
+                        while (true)
                         {
-                            messageSent.Append<Byte>(Byte.Parse($"\n{item.Value}"+"<EOF>"));
+                            Console.Write("Enter the message to send ('exit' to terminate): ");
 
+                            if (Finding.Detailsek.Count == 0)
+                            {
+                                Console.WriteLine("No details to send.");
+                                continue;
+                            }
+
+                            List<byte> messageSent = new List<byte>();
+                            foreach (var item in Finding.Detailsek)
+                            {
+                                messageSent.AddRange(Encoding.ASCII.GetBytes($"\n{item.Value}<EOF>"));
+                            }
+
+                            int byteSent = sender.Send(messageSent.ToArray());
+
+                            byte[] messageReceived = new byte[1024];
+                            int byteRecv = sender.Receive(messageReceived);
+                            if (byteRecv == 0) // Check for disconnection
+                            {
+                                Console.WriteLine("Server disconnected.");
+                                break;
+                            }
+
+                            Console.WriteLine("Message from Server -> {0}", Encoding.ASCII.GetString(messageReceived, 0, byteRecv));
+
+                            // Optionally, break the loop if the user enters "exit"
+                            if (Finding.Detailsek.Values.Any(v => v.Contains("exit")))
+                            {
+                                break;
+                            }
                         }
-
-                        int byteSent = sender.Send(messageSent);
-
-                        byte[] messageReceived = new byte[1024];
-                        int byteRecv = sender.Receive(messageReceived);
-                        Console.WriteLine("Message from Server -> {0}", Encoding.ASCII.GetString(messageReceived, 0, byteRecv));
-                        ize = false;
                     }
-
-                    // Close the socket
-                    sender.Shutdown(SocketShutdown.Both);
-                    sender.Close();
-                }
-                catch (ArgumentNullException ane)
-                {
-                    Console.WriteLine("ArgumentNullException : {0}", ane.ToString());
-                }
-                catch (SocketException se)
-                {
-                    Console.WriteLine("SocketException : {0}", se.ToString());
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine("Unexpected exception : {0}", e.ToString());
+                    catch (ArgumentNullException ane)
+                    {
+                        Console.WriteLine("ArgumentNullException : {0}", ane.ToString());
+                    }
+                    catch (SocketException se)
+                    {
+                        Console.WriteLine("SocketException : {0}", se.ToString());
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine("Unexpected exception : {0}", e.ToString());
+                    }
+                    finally
+                    {
+                        // Ensure the socket is properly shut down and closed
+                        sender.Shutdown(SocketShutdown.Both);
+                        sender.Close();
+                    }
                 }
             }
             catch (Exception e)
             {
                 Console.WriteLine(e.ToString());
             }
+         });
         }
         private void ReadPdf(string filePath)
         {
@@ -166,26 +187,7 @@ namespace HackCuccos
                 // Check if the "Risk Factor" section exists and determine background colors based on its content
                 if (finding.Details.TryGetValue("Risk Factor", out var riskFactorContent))
                 {
-                    if (riskFactorContent.StartsWith("Critical", StringComparison.OrdinalIgnoreCase))
-                    {
-                        background = Brushes.Red;
-                    }
-                    else if (riskFactorContent.StartsWith("High", StringComparison.OrdinalIgnoreCase))
-                    {
-                        background = Brushes.Orange;
-                    }
-                    else if (riskFactorContent.StartsWith("Medium", StringComparison.OrdinalIgnoreCase))
-                    {
-                        background = Brushes.Yellow;
-                    }
-                    else if (riskFactorContent.StartsWith("Low", StringComparison.OrdinalIgnoreCase))
-                    {
-                        background = Brushes.LightGreen;
-                    }
-                    else if (riskFactorContent.StartsWith("None", StringComparison.OrdinalIgnoreCase))
-                    {
-                        background = Brushes.DodgerBlue;
-                    }
+                    background = GetBackgroundBrush(riskFactorContent);
                 }
 
                 var expander = new Expander
@@ -203,6 +205,7 @@ namespace HackCuccos
                 };
 
                 var detailsPanel = new StackPanel();
+                expander.Content = detailsPanel;
 
                 foreach (var detail in finding.Details)
                 {
@@ -221,18 +224,69 @@ namespace HackCuccos
                     });
                 }
 
-                expander.Content = detailsPanel;
+                // Attach the Expanded event to log details to the server
+                expander.Expanded += (s, e) => LogFindingDetailsToServer(finding);
+
                 contentPanel.Children.Add(expander);
             }
 
             // Add StackPanel with content to the ScrollViewer
             //scrollViewer.Content = contentPanel;
-
             // Finally, add the ScrollViewer to the main layout
             FindingsStackPanel.Children.Add(contentPanel);
+            
         }
 
+        private SolidColorBrush GetBackgroundBrush(string riskFactorContent)
+        {
+            if (riskFactorContent.StartsWith("Critical", StringComparison.OrdinalIgnoreCase))
+                return Brushes.Red;
+            if (riskFactorContent.StartsWith("High", StringComparison.OrdinalIgnoreCase))
+                return Brushes.Orange;
+            if (riskFactorContent.StartsWith("Medium", StringComparison.OrdinalIgnoreCase))
+                return Brushes.Yellow;
+            if (riskFactorContent.StartsWith("Low", StringComparison.OrdinalIgnoreCase))
+                return Brushes.LightGreen;
+            return Brushes.Transparent;
+        }
 
+        private async void LogFindingDetailsToServer(Finding finding)
+        {
+            if (Finding.Detailsek.Count == 0)
+            {
+                Console.WriteLine("No details to send.");
+                return;
+            }
+
+            using (Socket sender = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+            {
+                try
+                {
+                    IPHostEntry ipHost = Dns.GetHostEntry(Dns.GetHostName());
+                    IPAddress ipAddr = ipHost.AddressList[0];
+                    IPEndPoint localEndPoint = new IPEndPoint(ipAddr, 11111);
+                    await sender.ConnectAsync(localEndPoint);
+
+                    Console.WriteLine($"Connected to server at {localEndPoint}");
+
+                    // Prepare message
+                    List<byte> messageSent = new List<byte>();
+                    messageSent.AddRange(Encoding.ASCII.GetBytes($"Details for: {finding.Title}<EOF>"));
+                    foreach (var detail in finding.Details)
+                    {
+                        messageSent.AddRange(Encoding.ASCII.GetBytes($"{detail.Key}: {detail.Value}<EOF>"));
+                    }
+
+                    // Send message
+                    sender.Send(messageSent.ToArray());
+                    Console.WriteLine("Details sent to server.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error sending details to server: " + ex.Message);
+                }
+            }
+        }
         private Border CreateHeader(Finding finding)
         {
             var headerBorder = new Border
