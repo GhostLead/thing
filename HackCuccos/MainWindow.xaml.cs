@@ -290,6 +290,11 @@ namespace HackCuccos
         {
             Application.Current.Shutdown();
         }
+
+        private void refButton_Click(object sender, RoutedEventArgs e)
+        {
+            DisplayFindings(findings);
+        }
     }
 
     
