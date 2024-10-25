@@ -247,6 +247,8 @@ namespace HackCuccos
                 return Brushes.Yellow;
             if (riskFactorContent.StartsWith("Low", StringComparison.OrdinalIgnoreCase))
                 return Brushes.LightGreen;
+            if (riskFactorContent.StartsWith("None", StringComparison.OrdinalIgnoreCase))
+                return Brushes.LightBlue;
             return Brushes.Transparent;
         }
 
