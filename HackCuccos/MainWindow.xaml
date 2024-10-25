@@ -14,9 +14,9 @@
                 </StackPanel>
             </Border>
             <Border>
-                <StackPanel Orientation="Horizontal">
-                    <Button x:Name="refButton" Margin="20,0,280,0" Content="🔄" Background="Transparent" BorderBrush="Black" BorderThickness="2" FontWeight="Bold" FontSize="17" Width="30" Height="30" VerticalAlignment="Center" HorizontalAlignment="Center" Click="refButton_Click"/>
-                    <Label HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="red" Content="Vulnerabilities" FontSize="20">
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button x:Name="refButton" Margin="20,0,260,0" Content="🔄" Background="Transparent" BorderBrush="Black" BorderThickness="2" FontWeight="Bold" FontSize="17" Width="30" Height="30" VerticalAlignment="Center" HorizontalAlignment="Center" Click="refButton_Click"/>
+                    <Label HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="red" Content="Vulnerabilities" FontSize="28">
                         <Label.Effect>
                             <DropShadowEffect BlurRadius="1" ShadowDepth="1.5" Opacity="0.8" Color="Black"/>
                         </Label.Effect>
